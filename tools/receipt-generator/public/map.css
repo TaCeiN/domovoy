@@ -1,0 +1,357 @@
+/**
+ * Карта покрытия реестра.
+ *
+ * Вторая страница того же инструмента: токены, шрифт и семантические
+ * цвета берутся из style.css. Своей системы здесь нет намеренно — карта
+ * не отдельный продукт, а ещё один экран генератора.
+ */
+
+/* Цвета данных, а не интерфейса: должны читаться поверх тайлов
+   и в светлой, и в тёмной теме, поэтому одни и те же в обеих */
+:root {
+  --map-in: #1f7a3d;    /* дом есть и в OSM, и в реестре */
+  --map-out: #c62828;   /* МКД без реестра */
+  --map-pick: #1565c0;  /* дома выбранной организации */
+  --map-off: #8b909a;   /* дом реестра, которому не нашлось места */
+}
+
+.map-page {
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+}
+
+/* ─────────────── верхняя полоса ─────────────── */
+
+.bar {
+  position: absolute;
+  z-index: 500;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.bar > * { pointer-events: auto; }
+
+.back,
+.ghost,
+.find input {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--tx);
+  font: inherit;
+  padding: 9px 12px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+}
+
+.back {
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--tx-2);
+}
+
+.back:hover { color: var(--tx); }
+
+.ghost { cursor: pointer; }
+.ghost:hover { border-color: var(--accent); }
+
+.find {
+  position: relative;
+  flex: 1;
+  max-width: 380px;
+}
+
+.find input { width: 100%; }
+
+.hits {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 16%);
+}
+
+.hit {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--tx);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hit:last-child { border-bottom: 0; }
+.hit:hover { background: var(--bg); }
+.hit b { font-weight: 500; }
+
+.hit span {
+  color: var(--tx-2);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ─────────────── легенда ─────────────── */
+
+.legend {
+  position: absolute;
+  z-index: 500;
+  left: 12px;
+  bottom: 12px;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 14%);
+}
+
+.legend h1 { margin: 0; font-size: 15px; }
+.legend .sub { margin: 4px 0 0; }
+
+/* Полоса покрытия: пропорции важнее чисел */
+.bar-cover {
+  display: flex;
+  height: 12px;
+  margin: 12px 0 10px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.seg {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  transition: filter 120ms;
+}
+
+.seg:hover { filter: brightness(1.15); }
+.seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.seg-in { background: var(--map-in); }
+.seg-out { background: var(--map-out); }
+
+/*
+ * Штриховка означает «места на карте нет».
+ * Сплошная заливка обещала бы точки, которых не существует.
+ */
+.seg-off {
+  background: repeating-linear-gradient(
+    45deg, var(--map-off), var(--map-off) 3px,
+    transparent 3px, transparent 6px
+  );
+}
+
+.keys {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 7px;
+}
+
+.key {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.key.muted { opacity: .45; }
+
+.key i {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  transform: translateY(1px);
+}
+
+.key b {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.key span { color: var(--tx-2); }
+
+/* ─────────────── панель дома ─────────────── */
+
+.panel {
+  position: absolute;
+  z-index: 500;
+  top: 66px;
+  right: 12px;
+  bottom: 12px;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  padding: 16px;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgb(0 0 0 / 16%);
+}
+
+.close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: 0;
+  color: var(--tx-2);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover { color: var(--tx); }
+
+.panel h2 { margin: 0 8px 14px 0; font-size: 15px; }
+
+.row {
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+}
+
+.row:first-of-type { border-top: 0; }
+
+.row dt {
+  margin: 0 0 2px;
+  color: var(--tx-2);
+  font-size: 12px;
+}
+
+.row dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.tag.ok { background: var(--ok-bg); color: var(--ok-tx); }
+.tag.bad { background: var(--bad-bg); color: var(--bad-tx); }
+.tag.warn { background: var(--warn-bg); color: var(--warn-tx); }
+
+.key-mono {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 12px;
+  color: var(--tx-2);
+}
+
+.list { margin: 0; padding: 0; list-style: none; }
+
+.list li {
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.list button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--tx-2);
+}
+
+.empty code {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+/* ─────────────── узкий экран ─────────────── */
+
+@media (max-width: 720px) {
+  .bar { flex-wrap: wrap; }
+  .find { max-width: none; }
+
+  .legend {
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+
+  .panel {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    max-height: 60vh;
+  }
+
+  /*
+   * Кнопки масштаба на узком экране убираем.
+   *
+   * Легенда занимает всю ширину, и кнопки садились поверх её чисел —
+   * «508» и «11 484» читались наполовину. Пальцами масштаб меняют щипком,
+   * так что кнопки здесь не единственный путь, а легенда — единственный.
+   */
+  .leaflet-control-zoom { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seg { transition: none; }
+}
+
+/* ─────────────── покрытие ─────────────── */
+
+.bar-cover .seg { cursor: default; }
+.key em { font-style: normal; color: var(--tx-2); min-width: 38px; text-align: right; }
+.key.total { cursor: default; opacity: .8; }
+
+.toggles {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--tx-2);
+}
+
+.toggles label { display: flex; gap: 8px; align-items: center; cursor: pointer; }

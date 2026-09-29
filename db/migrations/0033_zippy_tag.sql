@@ -1,0 +1,1 @@
+ALTER TABLE "mock_complex" ADD COLUMN "utilities" integer;

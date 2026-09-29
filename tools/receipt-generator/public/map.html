@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Покрытие домов — генератор квитанций</title>
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./map.css">
+</head>
+<body class="map-page">
+
+<div id="map" role="application" aria-label="Карта домов области"></div>
+
+<header class="bar">
+  <a class="back" href="/">← Генератор</a>
+</header>
+
+<!--
+  Покрытие — как у сотового оператора: с каким домом у нас достаточно
+  данных, чтобы прийти и договориться. Полоса отвечает «насколько всё плохо»,
+  строки под ней — «сколько», переключатели — что рисовать.
+-->
+<section class="legend" id="legend" aria-live="polite">
+  <div class="legend-head">
+    <h1>Покрытие домов</h1>
+    <p class="sub" id="legendSub">Загружаем…</p>
+  </div>
+
+  <div class="bar-cover" id="cover" role="img" aria-label="Многоквартирные дома по уровням покрытия"></div>
+
+  <ul class="keys" id="keys"></ul>
+
+  <div class="toggles">
+    <label><input type="checkbox" id="showLikely"> вероятно частные дома</label>
+    <label><input type="checkbox" id="showPrivate"> частные дома</label>
+    <label><input type="checkbox" id="onlyResidents"> только дома с жителями</label>
+  </div>
+</section>
+
+<aside class="panel" id="panel" hidden aria-live="polite">
+  <button type="button" class="close" id="panelClose" aria-label="Закрыть">×</button>
+  <div id="panelBody"></div>
+</aside>
+
+<script src="/vendor/leaflet/leaflet.js"></script>
+<script type="module" src="./map.js?v=coverage"></script>
+</body>
+</html>

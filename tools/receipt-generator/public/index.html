@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Генератор квитанций — Домовой</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <h1>Генератор квитанций</h1>
+    <p class="sub" id="dbLine">Инструмент разработки. Квитанции ненастоящие, деньги никуда не уходят.</p>
+  </div>
+  <a class="to-map" href="/map">Покрытие реестра на карте →</a>
+</header>
+
+<main>
+  <section class="card">
+    <h2>1. Дом</h2>
+    <p class="hint">
+      Ищите по настоящему реестру ГИС ЖКХ — так проверяется главное:
+      сойдётся ли дом из квитанции с домом из реестра. Можно и вписать
+      адрес руками, чтобы проверить дом, которого в реестре нет.
+    </p>
+
+    <label class="field">
+      <span>Поиск дома</span>
+      <input type="text" id="houseSearch" placeholder="Ленина 85, Азов Мира, Аксайский"
+             autocomplete="off">
+    </label>
+    <div id="houseHits" class="hits" hidden></div>
+
+    <label class="field">
+      <span>Адрес дома</span>
+      <textarea id="address" rows="2"
+        placeholder="344038, обл Ростовская, г Ростов-на-Дону, пр-кт Ленина, д. 85/3"></textarea>
+    </label>
+
+    <div class="row">
+      <label class="field grow">
+        <span>Квартира</span>
+        <input type="text" id="flat" value="27" placeholder="27">
+      </label>
+      <label class="field grow">
+        <span class="checkline">
+          <input type="checkbox" id="noAddress">
+          Без адреса в квитанции
+        </span>
+        <span class="hint tight">
+          Как печатают расчётные центры. Приложение обязано спросить адрес само.
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <section class="card" id="previewCard" hidden>
+    <h2>2. Что сделает приложение</h2>
+    <div id="preview"></div>
+  </section>
+
+  <section class="card">
+    <h2>3. Квитанция</h2>
+
+    <label class="field">
+      <span>Получатель платежа</span>
+      <select id="payee"></select>
+      <span class="hint tight" id="payeeNote"></span>
+    </label>
+
+    <div class="row">
+      <label class="field grow">
+        <span>Лицевой счёт</span>
+        <input type="text" id="persAcc" placeholder="считается по адресу">
+      </label>
+      <label class="field grow">
+        <span>Сумма, ₽</span>
+        <input type="text" id="sum" value="3816.30">
+      </label>
+      <label class="field grow">
+        <span>Период</span>
+        <input type="text" id="period" placeholder="082026">
+      </label>
+    </div>
+
+    <div class="row">
+      <label class="field grow">
+        <span>Фамилия</span>
+        <input type="text" id="lastName" placeholder="можно пусто">
+      </label>
+      <label class="field grow">
+        <span>Имя</span>
+        <input type="text" id="firstName" placeholder="можно пусто">
+      </label>
+      <label class="field grow">
+        <span>Отчество</span>
+        <input type="text" id="middleName" placeholder="можно пусто">
+      </label>
+    </div>
+
+    <label class="field">
+      <span>Кодировка</span>
+      <select id="encoding"></select>
+      <span class="hint tight">
+        Живые квитанции печатаются в windows-1251. Если нативный сканер MAX
+        читает их как UTF-8, ФИО и адрес приедут мусором — этот выбор
+        и нужен, чтобы проверить.
+      </span>
+    </label>
+  </section>
+
+  <section class="card">
+    <h2>4. Код</h2>
+    <div class="qr-wrap">
+      <div id="qr" class="qr"></div>
+      <div class="qr-side">
+        <div id="qrMeta" class="hint"></div>
+        <button type="button" id="showBig">Показать во весь экран</button>
+        <button type="button" id="copyString">Скопировать строку</button>
+        <button type="button" id="downloadSvg">Скачать SVG</button>
+        <p class="hint tight">
+          В бою вход жителя работает только внутри MAX, поэтому строку
+          вставить некуда — код надо отсканировать телефоном с экрана.
+        </p>
+      </div>
+    </div>
+    <textarea id="raw" rows="6" readonly></textarea>
+  </section>
+</main>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

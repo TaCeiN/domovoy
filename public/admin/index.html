@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1E1F24">
+<meta name="description" content="Кабинет оператора сервиса: дома без управляющей компании, заявки на подключение, жители и журнал действий.">
+<meta name="robots" content="noindex">
+<link rel="preload" href="../fonts/VKSansDisplay-Regular.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="../fonts/VKSansDisplay-DemiBold.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../dispatcher/dispatcher.css">
+<title>Кабинет оператора — Домовой</title>
+</head>
+<body class="dsp-body">
+
+<div class="dsp-shell">
+  <aside class="dsp-side">
+    <div class="dsp-brand">
+      <span class="dsp-logo">
+        <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M4 10.5L12 4L20 10.5V19.5C20 20 19.6 20.5 19 20.5H5C4.4 20.5 4 20 4 19.5V10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </span>
+      <div class="dsp-brand-text">
+        <div class="dsp-title">Домовой</div>
+        <div class="dsp-sub">Кабинет оператора</div>
+      </div>
+    </div>
+
+    <nav class="dsp-nav" id="admNav" aria-label="Разделы"></nav>
+
+    <div class="dsp-me">
+      <span class="dsp-avatar" data-role="avatar"></span>
+      <span class="dsp-me-name" data-role="who"></span>
+      <button class="dsp-logout" data-action="logout" title="Выйти">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 16l-4-4 4-4M6 12h9"/></svg>
+        <span class="dsp-logout-label">Выйти</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="dsp-main" id="admMain"></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module" src="./admin.js"></script>
+</body>
+</html>

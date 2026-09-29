@@ -1,0 +1,43 @@
+{
+  "about": "Тестовые данные для проверки собственного API «Домового». Проверка идёт на демо-доме: он заведён на бою и включается в кабинете оператора. Квитанция и аккаунт MAX для проверки не нужны.",
+  "baseUrl": "https://domovoy.devcore.com.ru",
+  "openapi": "https://domovoy.devcore.com.ru/openapi.yaml",
+  "dataApi": "https://domovoy.devcore.com.ru/DATA-API.yaml",
+  "demoHouse": {
+    "address": "Ростов-на-Дону, ул. Демонстрационная, д. 1",
+    "note": "Дом выдуманный, в ГАР его нет: настоящий житель туда не попадёт. Данные сбрасываются командой demo:reset."
+  },
+  "auth": {
+    "howTo": "POST /api/demo/roles/{key}/take с пустым JSON-телом → { \"token\": \"…\" }. Дальше заголовок Authorization: Bearer <token>.",
+    "roles": [
+      { "key": "chairman", "title": "Председатель совета дома", "flat": "1", "access": "active", "has": ["раздел «Совет дома»", "запросы на подтверждение соседей", "объявления и опросы председателя"] },
+      { "key": "owner12", "title": "Собственник", "flat": "12", "access": "active", "has": ["начисления за 6 месяцев", "счётчики воды и света с историей", "обращения", "действующее приглашение домочадца"] },
+      { "key": "member12", "title": "Жилец", "flat": "12", "access": "active", "has": ["доступ по приглашению собственника"] },
+      { "key": "owner45", "title": "Собственник", "flat": "45", "access": "active", "has": ["обращение со статусом need_info — диспетчер ждёт ответа"] },
+      { "key": "owner78", "title": "Собственник", "flat": "78", "access": "active", "has": ["выполненное обращение — можно оценить или вернуть"] },
+      { "key": "newcomer30", "title": "Новичок", "flat": "30", "access": "pending", "has": ["уровень 0: свои данные и обращение в УК сразу, лента — после подтверждения"] }
+    ],
+    "dispatcher": {
+      "login": "demo-uk",
+      "password": "стенд — на служебном слайде презентации (в репозиторий не кладётся); локальный запуск docker compose — demo-uk-2026",
+      "howTo": "POST /api/dispatcher/login { login, password } → { token }"
+    }
+  },
+  "samples": {
+    "createRequest": {
+      "method": "POST",
+      "path": "/api/requests",
+      "body": { "propertyId": "<properties.0.propertyId из GET /api/me>", "category": "Сантехника", "description": "В подвале течёт кран на стояке, на полу лужа." },
+      "expect": { "status": 201, "fields": ["id", "number", "status"] }
+    },
+    "takeInWork": {
+      "method": "POST",
+      "path": "/api/dispatcher/requests/{id}/status",
+      "body": { "status": "in_work", "assigneeName": "Петров И., сантехник" },
+      "expect": { "status": 200 }
+    },
+    "requestCategories": ["Авария", "Сантехника", "Электрика", "Лифт", "Общее имущество", "Другое"],
+    "requestStatuses": ["new", "in_work", "need_info", "done", "rejected"],
+    "meterKinds": ["cold", "hot", "elec", "gas", "heat"]
+  }
+}

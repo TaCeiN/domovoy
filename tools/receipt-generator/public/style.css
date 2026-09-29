@@ -1,0 +1,271 @@
+/**
+ * Оформление инструмента разработки.
+ *
+ * Намеренно ничего не переиспользует из приложения жителя: у того своя
+ * система токенов и тёмная тема, и тащить её сюда значило бы связать
+ * инструмент с продуктом. Инструмент должен пережить любую переделку
+ * вёрстки приложения.
+ */
+
+:root {
+  color-scheme: light dark;
+  --bg: #f4f5f7;
+  --card: #fff;
+  --line: #e2e4e9;
+  --tx: #16181d;
+  --tx-2: #6b7280;
+  --accent: #2d5bd7;
+  --ok-bg: #e8f5ec;
+  --ok-tx: #1c6b39;
+  --warn-bg: #fdf3e3;
+  --warn-tx: #8a5a10;
+  --bad-bg: #fdeaea;
+  --bad-tx: #a52323;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181d;
+    --card: #1f2229;
+    --line: #2e323b;
+    --tx: #eceef2;
+    --tx-2: #9aa1ad;
+    --accent: #7ea0ff;
+    --ok-bg: #17301f;
+    --ok-tx: #7fd6a0;
+    --warn-bg: #33280f;
+    --warn-tx: #e8bf74;
+    --bad-bg: #351a1a;
+    --bad-tx: #f19a9a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 0 60px;
+  background: var(--bg);
+  color: var(--tx);
+  font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.top {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 22px 20px 14px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.to-map {
+  flex: none;
+  color: var(--accent);
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.to-map:hover { text-decoration: underline; }
+
+h1 { margin: 0; font-size: 22px; }
+h2 { margin: 0 0 12px; font-size: 16px; }
+
+.sub, .hint {
+  margin: 6px 0 0;
+  color: var(--tx-2);
+  font-size: 13px;
+}
+
+.hint.tight { margin-top: 4px; }
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.field {
+  display: block;
+  margin-top: 14px;
+}
+
+.field > span:first-child {
+  display: block;
+  font-size: 13px;
+  color: var(--tx-2);
+  margin-bottom: 5px;
+}
+
+.checkline {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0 !important;
+}
+
+input[type="text"], textarea, select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--tx);
+  font: inherit;
+}
+
+textarea { resize: vertical; }
+
+#raw {
+  margin-top: 14px;
+  font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace;
+  word-break: break-all;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.grow { flex: 1 1 150px; }
+
+button {
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--tx);
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ─────────────── подсказки поиска ─────────────── */
+
+.hits {
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.hit {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 9px 12px;
+}
+
+.hit:last-child { border-bottom: 0; }
+.hit-a { display: block; }
+.hit-o { display: block; font-size: 12px; color: var(--tx-2); }
+.hit-empty { padding: 12px; color: var(--tx-2); font-size: 13px; }
+
+/* ─────────────── предсказание ─────────────── */
+
+.verdict {
+  padding: 11px 13px;
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--warn-bg);
+  color: var(--warn-tx);
+}
+
+.verdict.ok { background: var(--ok-bg); color: var(--ok-tx); }
+.verdict.bad { background: var(--bad-bg); color: var(--bad-tx); }
+
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 14px;
+  margin: 14px 0 0;
+  font-size: 13px;
+}
+
+.kv dt { color: var(--tx-2); }
+.kv dd { margin: 0; }
+.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+
+/* ─────────────── код ─────────────── */
+
+.qr-wrap {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.qr {
+  background: #fff;
+  border-radius: 10px;
+  padding: 6px;
+  line-height: 0;
+}
+
+.qr svg { max-width: 320px; height: auto; }
+
+/*
+ * Показ во весь экран.
+ *
+ * Инструмент существует ради одного действия — навести на код телефон,
+ * и здесь размер решает всё. Врезка ограничена 320 px, чтобы не разрывать
+ * страницу, а на плотном коде (версия 13 и выше — это 69 модулей и больше)
+ * модуль в ней получается тоньше четырёх пикселей. Для программного
+ * декодера этого хватает, для камеры под бликующим монитором — как повезёт.
+ * Полноэкранный режим убирает вопрос: модуль становится втрое крупнее.
+ */
+.qr-full {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  cursor: zoom-out;
+}
+
+.qr-full svg {
+  /* Квадрат по меньшей стороне окна: код должен помещаться целиком */
+  width: min(96vw, 96vh);
+  height: min(96vw, 96vh);
+  max-width: none;
+  image-rendering: pixelated;
+}
+
+.qr-full .qr-full-hint {
+  position: fixed;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #555;
+  font-size: 13px;
+}
+
+.qr-side {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-items: flex-start;
+}

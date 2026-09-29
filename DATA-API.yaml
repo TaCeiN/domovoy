@@ -1,0 +1,254 @@
+# DATA-API.yaml — обязательные проверки собственного API «Домового»
+#
+# Состав — по разделу «Только для решений с собственным API» кейса «Умный город»:
+# версия конфигурации, решение, базовый адрес, перечень обязательных проверок;
+# у каждой проверки — метод и путь, параметры запроса, роль, ожидаемые коды
+# и формат ответа (тип содержимого, JSON-структура, обязательные поля).
+#
+# Проверки идут ПО ПОРЯДКУ и образуют основной сценарий: житель подаёт
+# обращение → УК видит его в очереди и берёт в работу → житель видит статус.
+# Значения из ответов сохраняются (save) и подставляются в следующие шаги
+# как {{имя}}. Путь к полю — через точку, индексы массива — числом.
+#
+# Полная схема каждого ответа — в openapi.yaml (OpenAPI 3.1), ссылка у каждой
+# проверки в response.openapi. Тест server/contract.test.ts прогоняет эти же
+# проверки на демо-доме и сверяет ответы со схемами — перед каждой сдачей.
+
+version: "1.0"
+
+solution:
+  name: "Домовой — приложение дома в MAX"
+  id: "domovoy"
+  track: "Умный город"
+
+baseUrl: "https://domovoy.devcore.com.ru"
+openapi: "https://domovoy.devcore.com.ru/openapi.yaml"
+
+# Как проверке получить права роли. Квитанция и аккаунт MAX не нужны:
+# роли демо-дома выдают токен сразу. Токен — в заголовок Authorization.
+auth:
+  header: "Authorization"
+  format: "Bearer {{token}}"
+  roles:
+    guest:
+      description: "Без входа"
+    resident:
+      description: "Собственник кв. 12 демо-дома (подтверждённый житель)"
+      login: { method: POST, path: "/api/demo/roles/owner12/take", body: {} }
+      token: "token"
+    newcomer:
+      description: "Новичок кв. 30 — ждёт подтверждения (уровень 0)"
+      login: { method: POST, path: "/api/demo/roles/newcomer30/take", body: {} }
+      token: "token"
+    chairman:
+      description: "Председатель совета демо-дома"
+      login: { method: POST, path: "/api/demo/roles/chairman/take", body: {} }
+      token: "token"
+    dispatcher:
+      description: "Диспетчер УК «Демо-Дом» (кабинет УК)"
+      login:
+        method: POST
+        path: "/api/dispatcher/login"
+        body: { login: "demo-uk", password: "${DEMO_UK_PASSWORD}" }
+      token: "token"
+      note: "Пароль демо-УК — на служебном слайде презентации, в репозиторий не кладётся"
+
+checks:
+  - id: health
+    title: "Сервер и база отвечают"
+    required: true
+    role: guest
+    request: { method: GET, path: "/api/health" }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["status"]
+      json: { status: "ok" }
+      openapi: "#/paths/~1api~1health/get/responses/200"
+
+  - id: demo_roles
+    title: "Роли демо-дома для входа без квитанции"
+    required: true
+    role: guest
+    request: { method: GET, path: "/api/demo/roles" }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["roles", "roles.0.key", "roles.0.title"]
+      openapi: "#/paths/~1api~1demo~1roles/get/responses/200"
+
+  - id: resident_login
+    title: "Вход жителем (роль демо-дома)"
+    required: true
+    role: guest
+    request: { method: POST, path: "/api/demo/roles/owner12/take", headers: { Content-Type: "application/json" }, body: {} }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["token"]
+      openapi: "#/paths/~1api~1demo~1roles~1{key}~1take/post/responses/200"
+    save: { residentToken: "token" }
+
+  - id: unauthorized
+    title: "Без входа личные данные закрыты"
+    required: true
+    role: guest
+    request: { method: GET, path: "/api/me" }
+    response:
+      status: [401]
+      contentType: "application/json"
+      requiredFields: ["error"]
+      openapi: "#/components/responses/Unauthorized"
+
+  - id: me
+    title: "Житель и его квартиры"
+    required: true
+    role: resident
+    request: { method: GET, path: "/api/me" }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["user.id", "user.name", "properties", "properties.0.propertyId", "properties.0.status"]
+      openapi: "#/paths/~1api~1me/get/responses/200"
+    save: { propertyId: "properties.0.propertyId" }
+
+  - id: bills
+    title: "Начисления квартиры"
+    required: true
+    role: resident
+    request: { method: GET, path: "/api/properties/{{propertyId}}/bills" }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["bills", "outstandingKopecks"]
+      openapi: "#/paths/~1api~1properties~1{propertyId}~1bills/get/responses/200"
+
+  - id: meters
+    title: "Счётчики квартиры"
+    required: true
+    role: resident
+    request: { method: GET, path: "/api/properties/{{propertyId}}/meters" }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["meters", "kinds"]
+      openapi: "#/paths/~1api~1properties~1{propertyId}~1meters/get/responses/200"
+
+  - id: request_invalid
+    title: "Обращение без описания отклоняется понятной ошибкой"
+    required: true
+    role: resident
+    request:
+      method: POST
+      path: "/api/requests"
+      headers: { Content-Type: "application/json" }
+      body: { propertyId: "{{propertyId}}", category: "Сантехника", description: "" }
+    response:
+      status: [400]
+      contentType: "application/json"
+      requiredFields: ["error", "message"]
+
+  - id: request_create
+    title: "Житель подаёт обращение в УК"
+    required: true
+    role: resident
+    request:
+      method: POST
+      path: "/api/requests"
+      headers: { Content-Type: "application/json" }
+      body:
+        propertyId: "{{propertyId}}"
+        category: "Сантехника"
+        description: "Проверка API: в подвале течёт кран на стояке, на полу лужа."
+    response:
+      status: [201]
+      contentType: "application/json"
+      requiredFields: ["id", "number", "status"]
+      openapi: "#/paths/~1api~1requests/post/responses/201"
+    save: { requestId: "id", requestNumber: "number" }
+
+  - id: request_list
+    title: "Обращение появилось в списке жителя"
+    required: true
+    role: resident
+    request: { method: GET, path: "/api/requests", query: { propertyId: "{{propertyId}}" } }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["active", "archive"]
+      openapi: "#/paths/~1api~1requests/get/responses/200"
+
+  - id: dispatcher_login
+    title: "Вход в кабинет УК"
+    required: true
+    role: guest
+    request:
+      method: POST
+      path: "/api/dispatcher/login"
+      headers: { Content-Type: "application/json" }
+      body: { login: "demo-uk", password: "${DEMO_UK_PASSWORD}" }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["status", "token", "name"]
+      openapi: "#/paths/~1api~1dispatcher~1login/post/responses/200"
+    save: { dispatcherToken: "token" }
+
+  - id: dispatcher_queue
+    title: "Обращение в очереди УК, свежие сверху"
+    required: true
+    role: dispatcher
+    request: { method: GET, path: "/api/dispatcher/requests", query: { sort: "newest" } }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["total", "counters.total", "counters.new", "counters.overdue", "requests", "requests.0.id", "requests.0.status"]
+      openapi: "#/paths/~1api~1dispatcher~1requests/get/responses/200"
+
+  - id: dispatcher_take
+    title: "УК берёт обращение в работу"
+    required: true
+    role: dispatcher
+    request:
+      method: POST
+      path: "/api/dispatcher/requests/{{requestId}}/status"
+      headers: { Content-Type: "application/json" }
+      body: { status: "in_work", assigneeName: "Петров И., сантехник" }
+    response:
+      status: [200]
+      contentType: "application/json"
+      openapi: "#/paths/~1api~1dispatcher~1requests~1{id}~1status/post/responses/200"
+
+  - id: request_status_seen
+    title: "Житель видит новый статус и запись в переписке"
+    required: true
+    role: resident
+    request: { method: GET, path: "/api/requests/{{requestId}}" }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["id", "status", "statusLabel", "events"]
+      json: { status: "in_work" }
+      openapi: "#/paths/~1api~1requests~1{id}/get/responses/200"
+
+  - id: feed
+    title: "Лента дома подтверждённому жителю"
+    required: true
+    role: resident
+    request: { method: GET, path: "/api/feed" }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["posts"]
+      openapi: "#/paths/~1api~1feed/get/responses/200"
+
+  - id: polls
+    title: "Опросы дома"
+    required: true
+    role: resident
+    request: { method: GET, path: "/api/polls" }
+    response:
+      status: [200]
+      contentType: "application/json"
+      requiredFields: ["polls"]
+      openapi: "#/paths/~1api~1polls/get/responses/200"

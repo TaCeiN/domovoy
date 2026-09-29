@@ -1,0 +1,100 @@
+# Локальный запуск всего решения одной командой:
+#
+#   docker compose up --build
+#
+# Поднимается база, накатываются миграции, заводится демо-дом, стартует
+# приложение на http://localhost:3000. Параллельно, не задерживая запуск,
+# в фоне скачивается и загружается набор данных Ростовской области
+# (сервис `dataset`): без него приложение и демо-дом работают, с ним
+# появляются настоящие дома, адреса и УК региона.
+#
+# Для разработки нужна только база: docker compose up -d db
+# (приложение тогда запускается npm run dev на том же порту 3000).
+#
+# Имя проекта и том НЕ переименовывать: новое имя дало бы новый ПУСТОЙ
+# том. Боевой стенд живёт отдельно: docker-compose.prod.yml, проект
+# domovoy-prod.
+name: domovoy-dev
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgresql://domovoy:domovoy@db:5432/domovoy
+  UPLOADS_DIR: /data/uploads
+  # Только для локальной проверки. На бою — свой секрет в .env.prod.
+  COOKIE_SECRET: ${COOKIE_SECRET:-local-check-only}
+  DATASET_REPO: ${DATASET_REPO:-TaCeiN/domovoy-datasets}
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: domovoy-db
+    environment:
+      POSTGRES_USER: domovoy
+      POSTGRES_PASSWORD: domovoy
+      POSTGRES_DB: domovoy
+    # 5433, а не 5432: на 5432 часто сидит системная служба Postgres,
+    # и localhost уводит в чужую базу с «password authentication failed».
+    ports:
+      - "5433:5432"
+    volumes:
+      - domovoy-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U domovoy -d domovoy"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Разовый шаг: схема базы и демо-дом. Уже заведённый демо-дом при
+  # перезапуске не пересоздаётся — сделанное при проверке не пропадает.
+  init:
+    build: .
+    image: domovoy-app
+    environment:
+      <<: *app-env
+      DEMO_UK_PASSWORD: ${DEMO_UK_PASSWORD:-demo-uk-2026}
+    command: ["sh", "-c", "node db/migrate.ts && node db/demo.ts ensure"]
+    healthcheck:
+      disable: true
+    volumes:
+      - domovoy-uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # Бот MAX и помощник на GigaChat — внешние сервисы с секретами; локально
+  # они выключены, работают на развёрнутом стенде (README, «Внешние сервисы»).
+  app:
+    image: domovoy-app
+    pull_policy: never
+    environment:
+      <<: *app-env
+    ports:
+      - "3000:3000"
+    volumes:
+      - domovoy-uploads:/data/uploads
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # Фоновая загрузка набора региона и заглушки ЖК из релизов GitHub.
+  # Запуск приложения её не ждёт. Уже загруженный набор при перезапуске
+  # загружается заново поверх — это безопасно, но занимает минуты;
+  # пропустить: docker compose up --build --scale dataset=0
+  dataset:
+    image: domovoy-app
+    pull_policy: never
+    environment:
+      <<: *app-env
+    command: ["sh", "-c", "node db/dataset-load.ts --region 61 && node db/mock-load.ts"]
+    healthcheck:
+      disable: true
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: "no"
+
+volumes:
+  domovoy-pgdata:
+  domovoy-uploads:

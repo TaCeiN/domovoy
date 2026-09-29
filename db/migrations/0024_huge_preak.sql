@@ -1,0 +1,1 @@
+ALTER TABLE "mock_complex" ADD COLUMN "aliases" jsonb DEFAULT '[]'::jsonb NOT NULL;

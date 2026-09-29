@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Домовой</title>
+<!--
+  GitHub Pages отдаёт эту страницу на любой несуществующий путь.
+
+  Приложение живёт на одном URL и переключает экраны внутри себя, поэтому
+  любой другой путь — это опечатка или устаревшая ссылка. Возвращаем
+  человека на главную вместо казённой страницы GitHub с осьминогом:
+  внутри мини-аппа MAX такая страница выглядит как сломавшееся приложение.
+-->
+<script>
+  var base = location.pathname.indexOf('/dispatcher') === 0 ? '/dispatcher/' : '/';
+  location.replace(base);
+</script>
+</head>
+<body></body>
+</html>

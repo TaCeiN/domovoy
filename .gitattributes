@@ -1,0 +1,16 @@
+# Переводы строк: в репозитории LF, на Windows git не превращает их в CRLF
+# для скриптов, которые исполняются в контейнере (Dockerfile, Caddyfile, *.sh).
+* text=auto eol=lf
+
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.pdf  binary
+*.wasm binary
+*.woff binary
+*.woff2 binary
+*.pbf  binary
+*.tgz  binary

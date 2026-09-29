@@ -1,0 +1,1 @@
+ALTER TABLE "post" ADD COLUMN "share_phone" boolean DEFAULT false NOT NULL;

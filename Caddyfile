@@ -1,0 +1,38 @@
+# Сертификат Let's Encrypt выпускается и продлевается автоматически.
+# Условие одно: домен должен резолвиться в этот IP, а порты 80 и 443 —
+# быть открыты снаружи. По одному только IP сертификат не выдадут.
+#
+# Один адрес — один процесс приложения: {$DOMAIN} (domovoy.devcore.com.ru)
+# отдаёт мини-приложение, кабинеты, их API и вебхук бота MAX. Всё с одного
+# origin: без межсайтовых запросов, CORS и лишних OPTIONS.
+#
+# Основной домен devcore.com.ru приложению НЕ принадлежит — владелец
+# держит на нём своё. Не добавлять его сюда: сертификат на чужой домен
+# Caddy не получит, а заодно отберёт 80/443 у того, что там живёт.
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Заголовки безопасности: приложение работает с ПДн жильцов
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		# Кто имеет право встроить нас во фрейм.
+		#
+		# Здесь стоял X-Frame-Options "SAMEORIGIN", и это тихо закрывало
+		# приложение для айфонов: MAX убран из App Store 3 июня 2026,
+		# на iOS мессенджер работает веб-версией, а мини-приложение в ней —
+		# iframe с домена max.ru. SAMEORIGIN такой фрейм запрещает.
+		#
+		# frame-ancestors, в отличие от XFO, умеет разрешать конкретный
+		# чужой origin. Оба заголовка сразу ставить нельзя: XFO старше
+		# и в части браузеров выигрывает.
+		Content-Security-Policy "frame-ancestors https://max.ru https://*.max.ru"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy app:3000 {
+		header_up X-Real-IP {remote_host}
+	}
+}

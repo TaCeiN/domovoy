@@ -1,0 +1,568 @@
+/**
+ * Кабинет диспетчера.
+ *
+ * Отдельная страница и отдельные стили: это рабочее место за монитором,
+ * а не приложение в кармане. Токены и палитра берутся из styles.css,
+ * поэтому тёмная и светлая темы работают здесь бесплатно.
+ *
+ * Главное требование к вёрстке — плотность. Диспетчер смотрит очередь
+ * весь день, и ему важно видеть много строк сразу, а не любоваться
+ * воздухом между карточками.
+ */
+
+.dsp-body {
+  min-height: 100vh;
+  background: var(--bg-ground);
+  color: var(--tx);
+  padding: 0;
+  display: block;
+}
+
+/* ─────────────── каркас: меню слева, раздел справа ─────────────── */
+
+/* Как веб-версии VK и MAX: панель разделов во всю высоту, содержимое
+   прокручивается само. На экране входа панели нет — вести из неё некуда */
+.dsp-shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+.dsp-body:not(.dsp-signed) .dsp-shell { grid-template-columns: minmax(0, 1fr); }
+.dsp-body:not(.dsp-signed) .dsp-side { display: none; }
+
+.dsp-side {
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 16px 12px;
+  background: var(--bg-card);
+  box-shadow: inset -1px 0 0 var(--sep-soft);
+}
+
+.dsp-brand { display: flex; align-items: center; gap: 11px; padding: 2px 6px 14px; }
+.dsp-logo {
+  width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--brand); color: #fff;
+}
+.dsp-brand-text { min-width: 0; }
+.dsp-title { font-size: 17px; font-weight: 700; color: var(--tx-strong); letter-spacing: -.02em; }
+.dsp-sub { font-size: 12px; color: var(--tx-2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.dsp-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
+.dsp-nav-item {
+  position: relative;
+  display: flex; align-items: center; gap: 11px;
+  min-height: 44px; padding: 6px 8px; border-radius: 12px;
+  font-size: 15px; font-weight: 500; color: var(--tx); letter-spacing: -.01em;
+}
+.dsp-nav-item:hover { background: var(--press); }
+.dsp-nav-item.on { background: var(--fade); color: var(--tx-strong); font-weight: 600; }
+.dsp-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dsp-nav-icon {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.dsp-nav-label { flex: 1; min-width: 0; line-height: 1.2; }
+.dsp-nav-count {
+  min-width: 22px; padding: 2px 7px; border-radius: 11px;
+  background: var(--negative); color: #fff;
+  font-size: 12px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums;
+}
+
+.dsp-me {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 6px 2px; box-shadow: inset 0 1px 0 var(--sep-soft);
+}
+.dsp-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--blue-soft); color: var(--ink-soft); font-size: 14px; font-weight: 700;
+}
+.dsp-me-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; color: var(--tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsp-logout {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 34px; height: 34px; border-radius: 10px; color: var(--tx-2);
+}
+.dsp-logout:hover { background: var(--fade); color: var(--negative); }
+.dsp-logout-label { display: none; }
+
+.dsp-main { width: 100%; max-width: 1360px; margin: 0 auto; padding: 24px 28px 64px; }
+
+/* Узкое окно: меню сворачивается до полосы иконок, название раздела
+   остаётся подсказкой при наведении. Порог был 1100px — на ноутбуке
+   с масштабом диспетчер видел восемь безымянных иконок (аудит 26.09). */
+@media (max-width: 900px) {
+  .dsp-shell { grid-template-columns: 72px minmax(0, 1fr); }
+  .dsp-side { padding: 14px 10px; align-items: center; }
+  .dsp-brand { padding: 2px 0 12px; }
+  .dsp-brand-text, .dsp-nav-label, .dsp-me-name { display: none; }
+  .dsp-nav-item { justify-content: center; width: 52px; padding: 6px; }
+  .dsp-nav-icon { width: 34px; height: 34px; }
+  .dsp-nav-count { position: absolute; top: 1px; right: 0; min-width: 18px; padding: 1px 5px; font-size: 11px; }
+  .dsp-me { flex-direction: column; padding: 10px 0 0; }
+  .dsp-main { padding: 20px 20px 56px; }
+}
+
+/* Телефон: панель становится строкой сверху, разделы листаются вбок */
+@media (max-width: 720px) {
+  .dsp-shell { grid-template-columns: minmax(0, 1fr); }
+  .dsp-side {
+    position: sticky; top: 0; z-index: 20; height: auto;
+    flex-direction: row; align-items: center; padding: 8px 12px; gap: 8px;
+    box-shadow: inset 0 -1px 0 var(--sep-soft);
+  }
+  .dsp-brand { padding: 0; }
+  .dsp-logo { width: 34px; height: 34px; }
+  .dsp-nav { flex-direction: row; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .dsp-nav::-webkit-scrollbar { display: none; }
+  .dsp-nav-item { width: 46px; min-height: 42px; flex-shrink: 0; }
+  .dsp-avatar { display: none; }
+  .dsp-me { padding: 0; box-shadow: none; }
+  .dsp-main { padding: 16px 16px 48px; }
+}
+
+/* ─────────────── вход ─────────────── */
+
+.dsp-login {
+  max-width: 380px; margin: 56px auto 0;
+  background: var(--bg-card); border-radius: var(--r-m); padding: 28px;
+}
+.dsp-login h1 { font-size: 22px; font-weight: 700; letter-spacing: -.02em; color: var(--tx-strong); }
+.dsp-login p { font-size: 14px; color: var(--tx-2); margin-top: 8px; line-height: 1.45; }
+
+/* ─────────────── счётчики очереди ─────────────── */
+
+/* Сетка, а не флекс с переносом: при узком окне шестая плитка уезжала
+   на свою строку и растягивалась во всю ширину — «18 Просрочено», самая
+   важная цифра экрана, выглядела случайным обрывом вёрстки */
+.dsp-counters {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px; margin-bottom: 20px;
+}
+.dsp-counter {
+  background: var(--bg-card);
+  border-radius: var(--r-s); padding: 14px 16px; text-align: left;
+}
+.dsp-counter .n {
+  font-size: 26px; font-weight: 700; letter-spacing: -.02em;
+  color: var(--tx-strong); font-variant-numeric: tabular-nums;
+}
+.dsp-counter .l { font-size: 13px; color: var(--tx-2); margin-top: 2px; }
+.dsp-counter.warn .n { color: var(--negative); }
+.dsp-counter.on { box-shadow: inset 0 0 0 1.5px var(--accent); }
+
+/* ─────────────── очередь ─────────────── */
+
+.dsp-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+
+.dsp-queue { display: flex; flex-direction: column; gap: 1px; background: var(--sep-soft); border-radius: var(--r-m); overflow: hidden; }
+
+.dsp-row {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 2.2fr) minmax(0, 1.4fr) 128px 150px;
+  gap: 14px; align-items: center;
+  padding: 13px 16px; background: var(--bg-card); text-align: left; width: 100%;
+}
+.dsp-row:hover { background: var(--press); }
+.dsp-row .num { font-size: 13px; color: var(--tx-3); font-variant-numeric: tabular-nums; }
+/* Дата подачи под номером: очередь отсортирована по времени, и без даты
+   прошлогодняя заявка выглядит как вчерашняя */
+.dsp-row .dsp-when { display: block; margin-top: 3px; font-size: 12px; color: var(--tx-3); }
+.dsp-row .ttl {
+  display: block; font-size: 15px; font-weight: 500; color: var(--tx);
+  letter-spacing: -.014em; line-height: 1.3;
+}
+.dsp-row .cat { display: block; font-size: 13px; color: var(--tx-2); margin-top: 3px; }
+.dsp-row .pill { justify-self: start; }
+.dsp-row .addr { font-size: 13px; color: var(--tx-2); line-height: 1.35; }
+
+/* Просрочка обязана быть заметна с другого конца комнаты: это единственная
+   причина, по которой диспетчер вообще открывает этот экран */
+.dsp-sla { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.dsp-sla.ok { color: var(--tx-2); }
+.dsp-sla.soon { color: var(--attention); }
+.dsp-sla.overdue { color: var(--negative); font-weight: 600; }
+
+.dsp-row.overdue { box-shadow: inset 3px 0 0 var(--negative); }
+
+/* ─────────────── карточка заявки ─────────────── */
+
+.dsp-detail { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.dsp-card { background: var(--bg-card); border-radius: var(--r-m); padding: 20px; }
+.dsp-card + .dsp-card { margin-top: 16px; }
+.dsp-card h2 { font-size: 15px; font-weight: 600; color: var(--tx-strong); margin-bottom: 12px; }
+.dsp-back { font-size: 14px; color: var(--accent); margin-bottom: 14px; display: inline-block; }
+
+.dsp-kv { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 8px 14px; font-size: 14px; }
+.dsp-kv dt { color: var(--tx-2); }
+.dsp-kv dd { color: var(--tx); }
+
+.dsp-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.dsp-act {
+  font-size: 14px; font-weight: 500; padding: 10px 14px;
+  border-radius: var(--r-xs); background: var(--fade); color: var(--tx);
+}
+.dsp-act.primary { background: var(--accent); color: #fff; }
+.dsp-act.danger { background: var(--danger-soft); color: var(--negative); }
+.dsp-act.loading { color: transparent; pointer-events: none; }
+
+.dsp-empty { padding: 56px 20px; text-align: center; color: var(--tx-2); background: var(--bg-card); border-radius: var(--r-m); }
+
+@media (max-width: 900px) {
+  .dsp-detail { grid-template-columns: minmax(0, 1fr); }
+  .dsp-row { grid-template-columns: minmax(0, 1fr) 120px; gap: 8px; }
+  .dsp-row .num, .dsp-row .addr { display: none; }
+}
+
+/* ─────────────── переписка и ход хода ─────────────── */
+
+/* Ответ жителя в очереди. Без пометки строка выглядит как вчерашняя,
+   и ответ на собственное уточнение диспетчер просто не замечает */
+.dsp-row.answered { box-shadow: inset 3px 0 0 var(--accent); }
+.dsp-row.answered.overdue {
+  box-shadow: inset 3px 0 0 var(--negative), inset 6px 0 0 var(--accent);
+}
+.dsp-row .cat { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dsp-flag {
+  display: inline-block; margin-right: 8px; padding: 2px 7px; border-radius: var(--r-xs);
+  background: var(--blue-soft); color: var(--accent);
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em;
+  vertical-align: 1px;
+}
+
+.dsp-banner {
+  background: var(--blue-soft); color: var(--accent);
+  border-radius: var(--r-m); padding: 13px 16px; margin-bottom: 16px;
+  font-size: 14px; font-weight: 500;
+}
+.dsp-banner.wait { background: var(--amber-soft); color: var(--amber-deep); }
+
+.dsp-hint { font-size: 12px; color: var(--tx-2); line-height: 1.4; margin-top: 8px; }
+
+/* Лента событий в кабинете использует те же классы, что и у жителя:
+   обе стороны обязаны видеть одну и ту же переписку слово в слово */
+.dsp-card .timeline { margin-top: 4px; }
+
+/* ─────────────── разделы кабинета ─────────────── */
+
+.dsp-select {
+  width: 100%; border: 1.5px solid transparent; border-radius: var(--r-s);
+  padding: 12px 14px; font-family: inherit; font-size: 15px;
+  color: var(--tx-strong); background: var(--fade); outline: none;
+}
+
+/* Список объявлений и председателей: строка = запись плюс её состояние
+   плюс действие. Плотно, потому что записей бывает много */
+.ha-list { display: flex; flex-direction: column; gap: 2px; }
+.ha-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 150px auto;
+  align-items: center; gap: 12px;
+  padding: 12px 4px;
+}
+.ha-row + .ha-row { box-shadow: inset 0 1px 0 var(--sep-soft); }
+.ha-row.off { opacity: .55; }
+.ha-t { font-size: 15px; font-weight: 500; color: var(--tx); letter-spacing: -.014em; }
+.ha-d { font-size: 13px; color: var(--tx-2); margin-top: 3px; }
+.ha-state { justify-self: start; }
+
+/* Пароль председателя виден один раз — его переписывают с экрана,
+   поэтому моноширинный и крупный */
+.ha-secret {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 15px; letter-spacing: .04em;
+}
+
+.ha-bars { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+.ha-bar { display: grid; grid-template-columns: 160px 1fr 40px; align-items: center; gap: 10px; }
+.ha-bar .l { font-size: 13px; color: var(--tx-2); }
+.ha-bar .track { height: 6px; border-radius: 3px; background: var(--fade); overflow: hidden; }
+.ha-bar .fill { display: block; height: 100%; background: var(--accent); }
+.ha-bar .n { font-size: 13px; color: var(--tx-2); text-align: right; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+  .ha-row { grid-template-columns: minmax(0, 1fr); }
+  .ha-bar { grid-template-columns: 110px 1fr 34px; }
+}
+
+/* ─────────────── поиск и хвост очереди ─────────────── */
+
+/* Диспетчер работает по звонку: первое, что он делает, — набирает
+   услышанный номер или адрес. Поле стоит над очередью, а не в углу */
+.dsp-search { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+.dsp-search input {
+  flex: 1 1 320px; max-width: 460px; margin: 0;
+}
+
+.dsp-more {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; background: var(--bg-card); border-radius: var(--r-s);
+  margin-top: 12px;
+}
+
+/* ─────────────── кабинет оператора: таблицы, события, покрытие ─────────────── */
+
+/* Таблица CRM: заголовок прилипает, строка подсвечивается под курсором,
+   и край таблицы уходит под поля карточки — строки читаются во всю ширину */
+.dsp-table-wrap { margin: 0 -20px; overflow-x: auto; }
+.dsp-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.dsp-table th {
+  position: sticky; top: 0; z-index: 1;
+  text-align: left; font-size: 12px; font-weight: 600; color: var(--tx-2); white-space: nowrap;
+  padding: 9px 12px; background: var(--bg-card); box-shadow: inset 0 -1px 0 var(--sep);
+}
+.dsp-table td { padding: 10px 12px; vertical-align: middle; box-shadow: inset 0 -1px 0 var(--sep-soft); color: var(--tx); line-height: 1.35; }
+.dsp-table-wrap .dsp-table th:first-child, .dsp-table-wrap .dsp-table td:first-child { padding-left: 20px; }
+.dsp-table-wrap .dsp-table th:last-child, .dsp-table-wrap .dsp-table td:last-child { padding-right: 20px; }
+.dsp-table tbody tr:hover td { background: var(--press); }
+.dsp-table tr:last-child td { box-shadow: none; }
+.dsp-muted-cell { color: var(--tx-2) !important; font-size: 13px; font-variant-numeric: tabular-nums; }
+.dsp-addr-cell { min-width: 220px; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Пояснение к выбранному фильтру: одно на таблицу, а не в каждой строке */
+.dsp-note {
+  font-size: 13px; line-height: 1.4; padding: 10px 14px; margin: -2px 0 14px;
+  border-radius: var(--r-s); background: var(--fade-2); color: var(--tx);
+}
+.dsp-note.accent { background: var(--blue-soft); }
+.dsp-note.danger { background: var(--danger-soft); }
+.dsp-note.warn { background: var(--amber-soft); }
+.dsp-note.muted { background: var(--lav-soft); }
+.dsp-dim { font-size: 13px; color: var(--tx-2); margin-top: 3px; line-height: 1.4; }
+.dsp-nowrap { white-space: nowrap; }
+.dsp-mini {
+  font-size: 13px; font-weight: 500; padding: 6px 10px; border-radius: var(--r-xs);
+  background: var(--fade); color: var(--tx); white-space: nowrap;
+}
+.dsp-mini:hover { background: var(--fade-2); color: var(--tx-strong); }
+.dsp-mini.danger { background: var(--danger-soft); color: var(--negative); }
+
+.dsp-section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.dsp-section-head h2 { margin-bottom: 2px; font-size: 22px; font-weight: 700; letter-spacing: -.025em; }
+.dsp-section-head .dsp-actions { align-items: center; margin-top: 0; }
+
+.dsp-count {
+  display: inline-block; min-width: 20px; padding: 1px 6px; margin-left: 4px; border-radius: 10px;
+  background: var(--negative); color: #fff; font-size: 12px; font-weight: 600; text-align: center;
+}
+
+.dsp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.dsp-chip {
+  font-size: 14px; font-weight: 500; color: var(--tx); padding: 7px 13px;
+  border-radius: 18px; background: var(--fade-2); box-shadow: inset 0 0 0 1px var(--sep-soft);
+}
+.dsp-chip:hover { background: var(--fade); }
+.dsp-chip b { margin-left: 4px; color: var(--negative); font-variant-numeric: tabular-nums; }
+.dsp-chip.on { background: var(--accent); color: #fff; }
+.dsp-chip.on b { color: #fff; }
+
+.dsp-check { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--tx-2); cursor: pointer; }
+
+.dsp-badge {
+  display: inline-block; white-space: nowrap; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: var(--r-xs);
+  background: var(--fade); color: var(--tx);
+}
+.dsp-badge.accent { background: var(--blue-soft); color: var(--ink-soft); }
+.dsp-badge.danger { background: var(--danger-soft); color: var(--negative); }
+.dsp-badge.warn { background: var(--amber-soft); color: var(--amber-deep); }
+.dsp-badge.muted { background: var(--lav-soft); color: var(--lav-deep); }
+.dsp-hint-line { font-size: 12px; color: var(--tx-3); margin-top: 4px; line-height: 1.35; }
+.dsp-events tr.seen td { color: var(--tx-2); }
+.dsp-events tr.seen .dsp-badge { opacity: .6; }
+/* Новое событие отмечено полосой слева — как непрочитанный диалог */
+.dsp-events tr.fresh td:first-child { box-shadow: inset 3px 0 0 var(--accent), inset 0 -1px 0 var(--sep-soft); }
+.dsp-row-actions { text-align: right; white-space: nowrap; }
+.dsp-row-actions .dsp-mini + .dsp-mini { margin-left: 6px; }
+
+.dsp-segment { display: inline-flex; padding: 3px; border-radius: var(--r-xs); background: var(--fade); }
+.dsp-segment button { font-size: 14px; font-weight: 500; padding: 7px 12px; border-radius: 6px; color: var(--tx-2); }
+.dsp-segment button.on { background: var(--bg-card); color: var(--tx-strong); box-shadow: 0 1px 2px rgba(0,0,0,.18); }
+
+.dsp-sort { font: inherit; color: inherit; }
+.dsp-sort.on { color: var(--tx-strong); }
+.dsp-sort.on::after { content: ' ↓'; }
+
+.cov-kpis .dsp-counter { background: var(--fade-2); }
+.cov-kpis b { display: block; font-size: 24px; font-weight: 700; color: var(--tx-strong); font-variant-numeric: tabular-nums; }
+.cov-kpis span { font-size: 13px; color: var(--tx-2); }
+.cov-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--fade); margin-top: 6px; min-width: 60px; }
+.cov-bar i { display: block; height: 100%; }
+.cov-legend { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 10px 0 14px; font-size: 13px; color: var(--tx-2); }
+.cov-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+
+.cov-layout { display: grid; gap: 16px; }
+.cov-layout.places { grid-template-columns: minmax(0, 1fr) minmax(440px, 1fr); }
+.cov-map-wrap { position: relative; }
+.cov-map { height: 620px; border-radius: var(--r-s); overflow: hidden; background: var(--fade); }
+.cov-map-note {
+  position: absolute; left: 12px; bottom: 12px; z-index: 500; font-size: 13px;
+  padding: 6px 10px; border-radius: var(--r-xs); background: var(--bg-card); color: var(--tx);
+}
+.cov-side { max-height: 620px; overflow: auto; }
+.dsp-searchbar.cov-search { position: sticky; top: 0; z-index: 2; margin-bottom: 6px; padding-right: 14px; background: var(--bg-card); box-shadow: inset 0 0 0 1px var(--sep); }
+.dsp-searchbar.cov-search input { padding: 8px 4px; }
+/* Сводка по пунктам — узкая колонка рядом с картой: плотнее обычной таблицы */
+.cov-table { font-size: 13px; }
+.cov-table th { top: 48px; padding: 8px 8px; }
+.cov-table td { padding: 8px 8px; }
+.cov-table th:first-child, .cov-table td:first-child { padding-left: 4px; }
+.cov-place-head + .cov-table th { top: 0; }
+.cov-row { cursor: pointer; }
+.cov-row:hover td { background: var(--press); }
+.cov-table td .cov-bar { max-width: 120px; }
+.cov-place-head h3 { font-size: 18px; font-weight: 600; color: var(--tx-strong); margin: 10px 0 2px; }
+
+@media (max-width: 1000px) {
+  .cov-layout.places { grid-template-columns: minmax(0, 1fr); }
+  .cov-map { height: 420px; }
+  .cov-side { max-height: none; }
+}
+
+/* ─────────────── фильтры и листание ─────────────── */
+
+/* Фильтры — одной строкой над таблицей, как в CRM: столбик полей во всю
+   ширину съедал экран, и до самих записей приходилось листать */
+.dsp-filterbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; margin-top: 14px; }
+.dsp-field { display: flex; flex-direction: column; gap: 5px; flex: 0 1 200px; min-width: 160px; }
+.dsp-field.wide { flex: 1 1 260px; }
+.dsp-field > span { font-size: 12px; font-weight: 600; color: var(--tx-2); }
+.dsp-field input, .dsp-field .dsp-select { margin: 0; padding-top: 10px; padding-bottom: 10px; font-size: 14px; }
+.dsp-filterbar-actions { display: flex; gap: 8px; }
+
+.dsp-pager { display: flex; align-items: center; gap: 8px; padding-top: 12px; }
+.dsp-pager .dsp-dim { margin: 0 auto 0 0; }
+.dsp-mini:disabled { opacity: .45; pointer-events: none; }
+.dsp-field .dp-trigger { padding-top: 9px; padding-bottom: 9px; font-size: 14px; }
+
+/* ─────────────── строка поиска ─────────────── */
+
+.dsp-searchbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 4px 4px 14px; border-radius: var(--r-s);
+  background: var(--fade-2); box-shadow: inset 0 0 0 1px var(--sep-soft);
+}
+.dsp-searchbar:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--bg-card); }
+.dsp-searchbar svg { color: var(--tx-2); flex-shrink: 0; }
+.dsp-searchbar input {
+  flex: 1; min-width: 0; margin: 0; padding: 9px 4px; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; font-size: 15px;
+}
+.dsp-searchbar input:focus { box-shadow: none; outline: none; background: transparent; }
+.dsp-searchbar .dsp-act { padding: 9px 18px; }
+.dsp-card > h2 + .dsp-searchbar { margin-top: 2px; }
+.dsp-searchbar + .dsp-dim { margin-top: 10px; }
+
+/* ─────────────── карточка дома оператора ─────────────── */
+
+.dsp-house-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+.dsp-house-title h2 { font-size: 22px; font-weight: 700; letter-spacing: -.025em; margin-bottom: 4px; }
+.dsp-house-level { max-width: 420px; }
+.dsp-house-level .dsp-dim { margin-top: 6px; }
+/* Уровень покрытия — цветная точка и подпись, те же цвета, что на карте */
+.dsp-level {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 11px; border-radius: 16px; background: var(--fade-2);
+  font-size: 14px; font-weight: 600; color: var(--tx-strong);
+}
+.dsp-level::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+
+.dsp-detail aside .dsp-card h2, .dsp-detail .dsp-card h2 { font-size: 16px; }
+.dsp-detail { grid-template-columns: minmax(0, 1fr) 360px; }
+.dsp-gap { margin-top: 14px; }
+.dsp-inline { display: flex; gap: 8px; }
+.dsp-inline input { flex: 1; min-width: 0; margin: 0; padding-top: 10px; padding-bottom: 10px; font-size: 14px; }
+.dsp-kv { grid-template-columns: 128px minmax(0, 1fr); font-size: 13px; }
+.dsp-org { margin-top: 14px; padding-top: 12px; box-shadow: inset 0 1px 0 var(--sep-soft); }
+.dsp-org-name { font-size: 14px; font-weight: 600; color: var(--tx-strong); }
+.dsp-contacts { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 6px 0 4px; font-size: 14px; }
+.dsp-contacts a { color: var(--accent); }
+
+/* ─────────────── формы кабинета ─────────────── */
+
+/* Общие поля и кнопки пришли из приложения жителя: там палец и телефон,
+   здесь мышь и монитор. Внутри карточек кабинета они плотнее, кнопка —
+   по содержимому, а не во всю ширину. Экран входа не трогаем. */
+.dsp-card .field-label { margin: 14px 2px 6px; font-size: 12px; font-weight: 600; }
+.dsp-card .field-label:first-of-type { margin-top: 4px; }
+.dsp-card input[type=text], .dsp-card input[type=number], .dsp-card textarea, .dsp-card .dsp-select, .dsp-card select {
+  padding: 10px 12px; font-size: 14px; border-radius: var(--r-xs);
+  background: var(--fade-2); border: 1px solid var(--sep-soft);
+}
+.dsp-card input:focus, .dsp-card textarea:focus, .dsp-card select:focus { border-color: var(--accent); background: var(--bg-card); }
+.dsp-card textarea { min-height: 88px; }
+.dsp-card .btn-primary {
+  width: auto; display: inline-flex; min-height: 38px; padding: 0 18px; margin-top: 14px;
+  font-size: 14px; border-radius: var(--r-xs);
+}
+.dsp-card .chip { font-size: 14px; padding: 7px 12px; }
+
+/* ─────────────── очередь заявок и карточка заявки ─────────────── */
+
+.dsp-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.dsp-page-head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.03em; color: var(--tx-strong); }
+.dsp-page-head .dsp-dim { margin-top: 2px; }
+.dsp-page-search { flex: 0 1 520px; min-width: 280px; }
+.dsp-page-search .dsp-searchbar { background: var(--bg-card); }
+
+/* Счётчики — фильтры очереди: плотная плитка, выбранная залита мягким акцентом */
+.dsp-counters { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.dsp-counter { padding: 11px 14px; transition: box-shadow .15s ease; }
+.dsp-counter:hover { box-shadow: inset 0 0 0 1px var(--sep); }
+.dsp-counter .n { font-size: 22px; }
+.dsp-counter .l { font-size: 12px; font-weight: 500; }
+.dsp-counter.on { background: var(--blue-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.dsp-counter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.dsp-queue { gap: 0; background: var(--bg-card); }
+.dsp-row { box-shadow: inset 0 -1px 0 var(--sep-soft); padding: 11px 16px; }
+.dsp-row.head {
+  padding-top: 9px; padding-bottom: 9px; cursor: default;
+  font-size: 12px; font-weight: 600; color: var(--tx-2);
+  box-shadow: inset 0 -1px 0 var(--sep);
+}
+.dsp-row.head:hover { background: var(--bg-card); }
+.dsp-row .ttl { font-size: 14px; font-weight: 600; }
+.dsp-row .pill { font-size: 12px; padding: 4px 9px; }
+.dsp-row.overdue { box-shadow: inset 3px 0 0 var(--negative), inset 0 -1px 0 var(--sep-soft); }
+.dsp-row.answered { box-shadow: inset 3px 0 0 var(--accent), inset 0 -1px 0 var(--sep-soft); }
+.dsp-row.answered.overdue { box-shadow: inset 3px 0 0 var(--negative), inset 6px 0 0 var(--accent), inset 0 -1px 0 var(--sep-soft); }
+@media (max-width: 900px) { .dsp-row.head { display: none; } }
+
+.dsp-back { font-size: 14px; font-weight: 500; color: var(--accent); margin-bottom: 12px; display: inline-block; }
+.dsp-req-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+.dsp-req-head h1 { font-size: 22px; font-weight: 700; letter-spacing: -.025em; color: var(--tx-strong); margin: 4px 0; }
+.dsp-req-state { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.dsp-req-state .pill { font-size: 13px; padding: 6px 11px; }
+/* Действия всегда под рукой: длинная переписка прокручивается, панель остаётся */
+.dsp-aside { position: sticky; top: 16px; }
+@media (max-width: 900px) { .dsp-aside { position: static; } .dsp-req-state { align-items: flex-start; } }
+
+/* Отзыв о доме в карточке дома оператора */
+.dsp-review { padding: 10px 0; border-top: 1px solid var(--sep-soft); }
+.dsp-review p { margin: 4px 0; }
+
+/* Вложения к заявке: кнопки, а не ссылки — файл забирается запросом с токеном */
+.dsp-photo{ padding:0; border:0; background:none; cursor:zoom-in; }
+.dsp-link{
+  padding:0; border:0; background:none; cursor:pointer;
+  color:var(--accent); font:inherit; text-decoration:underline;
+}
+
+/* Поиск по загруженному списку домов и лицевых счетов */
+.dsp-filter{ width:100%; margin:4px 0 12px; }
+/* У строк свой display (grid, table-row) — он перебил бы атрибут hidden */
+[data-filter-row][hidden]{ display:none !important; }
+
+/* Порядок очереди: по сроку или по дате создания */
+.dsp-sort { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.dsp-sort .chip { font-size: 14px; padding: 7px 12px; }
+.dsp-house-pick {
+  font: inherit; font-size: 14px; padding: 7px 10px; border-radius: var(--r-xs);
+  border: 1px solid var(--sep); background: var(--bg-2, var(--fade)); color: var(--tx);
+  max-width: 100%;
+}
+
+/* Переписка — чатом, как у жителя (public/app/chat.js); своя прокрутка внутри карточки */
+.dsp-chat .chat{ max-height:60vh; overflow-y:auto; padding:4px 4px 8px 0; }
+.dsp-chat .chat-input{ margin-top:10px; }
+.dsp-chat .chat-input textarea{ width:auto; min-width:0; }
+.dsp-chat .chat-files .dsp-photo img{ width:120px; height:120px; object-fit:cover; border-radius:12px; display:block; }
+/* Карточка кабинета того же цвета, что пузырь, — пузырь жителя получает подложку */
+.dsp-chat .chat-msg:not(.mine) .chat-bubble{ background:var(--fade); box-shadow:none; }

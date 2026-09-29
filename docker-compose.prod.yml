@@ -1,0 +1,112 @@
+# Имя проекта задано явно и отличается от дев-компоуза.
+#
+# Без него оба файла лежат в одной папке, получают одинаковое имя проекта
+# по имени каталога и дерутся за контейнеры: `docker compose up -d db` для
+# локальной разработки СНОСИТ боевую базу и подменяет её своей. Приложение
+# после этого отвечает 500 на всё, а причина выглядит как порча данных.
+# Разные имена разводят стенды полностью: контейнеры, сеть и тома у каждого свои.
+name: domovoy-prod
+
+# Развёрнутый стенд: приложение, база и TLS-прокси на одном сервере.
+# Порядок — README, раздел «Развёрнутый стенд».
+#
+#   cp .env.prod.example .env.prod   и заполнить
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml exec app node db/migrate.ts
+#
+# Caddy сам получает и продлевает сертификат Let's Encrypt — отдельной
+# возни с certbot и cron не нужно.
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-domovoy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?задайте пароль в .env.prod}
+      POSTGRES_DB: ${POSTGRES_DB:-domovoy}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Порт выставлен ТОЛЬКО на петлю: снаружи база по-прежнему недоступна,
+    # а миграции и часовой импорт реестра запускаются с хоста обычным
+    # `node db/migrate.ts` — это тот же код, что и внутри контейнера.
+    ports:
+      - "127.0.0.1:5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-domovoy}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Окно приёма показаний и текущий период считаются по локальному
+      # времени процесса. Без этой строки контейнер живёт в UTC, а жители
+      # в UTC+3: 20-го числа до трёх ночи приём «ещё закрыт», а в ночь
+      # на первое показания уходят в прошлый месяц.
+      TZ: ${TZ:-Europe/Moscow}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-domovoy}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-domovoy}
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:?нужен токен бота}
+      MAX_BOT_USERNAME: ${MAX_BOT_USERNAME:-t545_hakaton_max_bot}
+      MAX_API_BASE: ${MAX_API_BASE:-https://platform-api.max.ru}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?укажите origin фронта}
+      DEV_TOOLS: ${DEV_TOOLS:-0}
+      COOKIE_SECRET: ${COOKIE_SECRET:?задайте случайную строку}
+      # Вложения к обращениям лежат в томе, а не в образе: пересборка
+      # не должна стирать фотографии протечек из чужих заявок
+      UPLOADS_DIR: /data/uploads
+      # Бот MAX и Домовёнок: без секрета вебхук выключен, без ключа GigaChat
+      # агент молчит — отвечают правила и шаблоны кода (README, «Домовёнок»)
+      BOT_WEBHOOK_SECRET: ${BOT_WEBHOOK_SECRET:-}
+      BOT_DAILY_MESSAGES: ${BOT_DAILY_MESSAGES:-30}
+      GIGACHAT_AUTH_KEY: ${GIGACHAT_AUTH_KEY:-}
+      GIGACHAT_SCOPE: ${GIGACHAT_SCOPE:-GIGACHAT_API_PERS}
+      GIGACHAT_MODEL: ${GIGACHAT_MODEL:-GigaChat-2-Pro}
+      GIGACHAT_API_BASE: ${GIGACHAT_API_BASE:-}
+      GIGACHAT_CONCURRENCY: ${GIGACHAT_CONCURRENCY:-1}
+      GIGACHAT_DAILY_TOKENS: ${GIGACHAT_DAILY_TOKENS:-800000}
+      # Корневой сертификат Минцифры: Dockerfile кладёт certs/ сюда
+      GIGACHAT_CA_FILE: /usr/local/share/ca-certificates/russian_trusted_root_ca.crt
+    volumes:
+      - uploads:/data/uploads
+    expose:
+      - "3000"
+    # Тоже петля: проверить приложение напрямую, минуя TLS и Caddy. Снаружи
+    # порт закрыт, наружу ходит только Caddy.
+    ports:
+      - "127.0.0.1:3001:3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?укажите домен, A-запись которого смотрит на этот сервер}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  # Имена томов заданы явно: они не зависят от имени каталога, из которого
+  # запущен compose. Сертификат Let's Encrypt Caddy выпускает сам при первом
+  # запуске — домен должен резолвиться в IP сервера, порты 80 и 443 открыты.
+  pgdata:
+    name: domovoy_pgdata
+  uploads:
+    name: domovoy_uploads
+  caddy-data:
+    name: domovoy_caddy-data
+  caddy-config:
+    name: domovoy_caddy-config

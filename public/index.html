@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1E1F24">
+<meta name="description" content="Личный кабинет жителя: заявки в УК, показания счётчиков, оплата ЖКУ, аналитика потребления, объявления и опросы дома.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preload" href="./fonts/VKSansDisplay-Regular.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="./fonts/VKSansDisplay-DemiBold.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="./styles.css">
+<title>Домовой — приложение вашего дома</title>
+<!-- Внутри MAX появится window.WebApp. Снаружи скрипта просто не будет,
+     и приложение работает как обычный сайт. -->
+<script src="https://st.max.ru/js/max-web-app.js"></script>
+</head>
+<body>
+
+<div class="app">
+
+  <!--
+    Шапка — одна строка: кнопка «Назад» и название раздела рядом с ней.
+
+    Мессенджер сам рисует полосу с названием мини-аппа и крестиком, поэтому
+    своей полосы с логотипом нет. Название раздела раньше стояло отдельной
+    строкой страницы под кнопкой и забирало высоту — теперь оно в той же
+    строке, что и «Назад», на всех экранах одинаково.
+  -->
+  <header class="app-header off">
+    <button class="hd-btn" id="hdBackBtn" data-action="back" style="display:none" aria-label="Назад">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <h1 class="hd-title" id="hdTitle"></h1>
+  </header>
+
+  <div class="pages" id="pages"></div>
+
+  <!--
+    Заставка при открытии.
+
+    Прячет холодный старт: пока она на экране, приложение успевает
+    получить профиль, объекты и начисления. Приветствие переехало сюда
+    с главной — там оно занимало строку на каждом заходе, а здесь
+    показывается ровно один раз и по делу.
+  -->
+  <div class="splash" id="splash">
+    <!--
+      Дом складывается из пятиугольника, прочерчивается линией, и от него
+      расходятся волны — одна метафора вместо крутящегося кружка.
+
+      Всё движение декоративное, поэтому скрыто от чтения с экрана:
+      человеку со скринридером важны «Домовой» и приветствие, а не круги.
+    -->
+    <div class="splash-stage" aria-hidden="true">
+      <span class="sp-glow"></span>
+
+      <span class="sp-ripple"></span>
+      <span class="sp-ripple r2"></span>
+      <span class="sp-ripple r3"></span>
+
+      <div class="sp-sparks">
+        <span style="--a:15deg;  --r:130px; --dl:0s"></span>
+        <span style="--a:45deg;  --r:150px; --dl:.04s"></span>
+        <span style="--a:75deg;  --r:122px; --dl:.09s"></span>
+        <span style="--a:105deg; --r:146px; --dl:.02s"></span>
+        <span style="--a:135deg; --r:134px; --dl:.11s"></span>
+        <span style="--a:165deg; --r:158px; --dl:.06s"></span>
+        <span style="--a:195deg; --r:126px; --dl:.08s"></span>
+        <span style="--a:225deg; --r:150px; --dl:.01s"></span>
+        <span style="--a:255deg; --r:138px; --dl:.1s"></span>
+        <span style="--a:285deg; --r:158px; --dl:.05s"></span>
+        <span style="--a:315deg; --r:130px; --dl:.12s"></span>
+        <span style="--a:345deg; --r:146px; --dl:.07s"></span>
+      </div>
+
+      <span class="sp-orbit" style="--r0:0deg"></span>
+      <span class="sp-orbit o2" style="--r0:-90deg"></span>
+
+      <div class="splash-logo">
+        <!-- Пятиугольник и дом — ОТДЕЛЬНЫЕ svg: анимируется сам svg-элемент
+             (transform/opacity на видеокарте), а не фигура внутри него.
+             Фигуры внутри SVG браузер анимирует на основном потоке, и пока
+             приложение грузится, дом дёргался вместе с загрузкой. -->
+        <svg class="sp-mark sp-pentagon" viewBox="0 0 100 100" fill="none">
+          <polygon points="50,26 73,42 64,70 36,70 27,42" transform="rotate(-16 50 50)"/>
+        </svg>
+        <svg class="sp-mark sp-house" viewBox="0 0 100 100" fill="none">
+          <path d="M 30 47 L 50 32 L 58 38 L 58 30 L 64 30 L 64 42.5 L 70 47
+                   L 70 67 L 56 67 L 56 55 L 44 55 L 44 67 L 30 67 L 30 47 Z"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="splash-title" id="splashTitle">Домовой</div>
+    <div class="splash-greet" id="splashGreet"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <nav class="apptabs">
+    <button class="apptab active" data-tab="home">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5L12 4L20 10.5V19.5C20 20 19.6 20.5 19 20.5H5C4.4 20.5 4 20 4 19.5V10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Главная
+    </button>
+    <button class="apptab" data-tab="requests">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="4.5" y="3" width="15" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 8.5H15.5M8.5 12H15.5M8.5 15.5H12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Обращения
+    </button>
+    <button class="apptab" data-tab="feed">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M7.5 10H16.5M7.5 14H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Дом
+    </button>
+    <button class="apptab" data-tab="profile">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.6" stroke="currentColor" stroke-width="1.8"/><path d="M4.8 20C4.8 16 8 14.2 12 14.2C16 14.2 19.2 16 19.2 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Профиль
+    </button>
+  </nav>
+</div>
+
+<script type="module" src="./app/main.js"></script>
+</body>
+</html>
